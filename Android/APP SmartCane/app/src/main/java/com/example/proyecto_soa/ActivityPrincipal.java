@@ -27,7 +27,6 @@ public class ActivityPrincipal extends AppCompatActivity {
 
         cmdBaston.setOnClickListener(botonesListeners);
         cmdFamiliar.setOnClickListener(botonesListeners);
-
     }
 
     private View.OnClickListener botonesListeners = new View.OnClickListener() {
@@ -35,12 +34,12 @@ public class ActivityPrincipal extends AppCompatActivity {
         public void onClick(View view) {
             if (view.getId() == R.id.id_baston) {
                 intent_next_activity = new Intent(ActivityPrincipal.this, ActivityBaston.class);
+                intent_next_activity.putExtra("ROL", "BASTON");
                 startActivity(intent_next_activity);
-                //finish();
             } else if (view.getId() == R.id.id_familiar) {
                 intent_next_activity = new Intent(ActivityPrincipal.this, ActivityFamiliar.class);
+                intent_next_activity.putExtra("ROL", "FAMILIAR");
                 startActivity(intent_next_activity);
-                //finish();
             } else
                 Toast.makeText(getApplicationContext(), "Error en Listener de botones", Toast.LENGTH_LONG).show();
         }
@@ -52,5 +51,11 @@ public class ActivityPrincipal extends AppCompatActivity {
 
         Intent intent = new Intent(this, ServicioPasosAcelerometro.class);
         stopService(intent);
+
+        Intent intent2 = new Intent(this, MqttHandlerServiceFamiliar.class);
+        stopService(intent2);
+
+        Intent intent3 = new Intent(this, MqttHandlerServiceBaston.class);
+        stopService(intent3);
     }
 }

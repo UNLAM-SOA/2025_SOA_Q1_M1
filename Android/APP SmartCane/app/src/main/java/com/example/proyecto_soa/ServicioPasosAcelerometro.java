@@ -1,6 +1,5 @@
 package com.example.proyecto_soa;
 
-import android.app.IntentService;
 import android.app.Service;
 import android.content.Intent;
 import android.hardware.Sensor;
@@ -17,7 +16,7 @@ public class ServicioPasosAcelerometro extends Service implements SensorEventLis
     private Sensor accelerometer;
     private int stepCount = 0;
     private static final float THRESHOLD = 10.0f;
-    private static final int TIME_BETWEEN_STEPS_MS = 300;
+    private static final int TIME_BETWEEN_STEPS_MS = 500;
     private long lastStepTime = 0;
 
     @Override
@@ -51,13 +50,15 @@ public class ServicioPasosAcelerometro extends Service implements SensorEventLis
                     Intent i = new Intent("PASOS_ACTUALIZADOS");
                     i.putExtra("pasos", stepCount);
                     sendBroadcast(i);
+                    Log.d("MQTT", "Servicio pasos mando broadcast");
                 }
             }
         }).start();
     }
 
     @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+    }
 
     @Override
     public void onDestroy() {
