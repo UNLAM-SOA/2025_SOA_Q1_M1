@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:allowBackup="true"
@@ -31,7 +33,8 @@
         <activity android:name=".ActivityBaston" />
         <activity android:name=".ActivityFamiliar" />
         <service android:name=".ServicioPasosAcelerometro" android:exported="false" />
-        <service android:name=".MqttHandlerService" android:exported="false" />
+        <service android:name=".MqttHandlerServiceBaston" android:exported="false" />
+        <service android:name=".MqttHandlerServiceFamiliar" android:exported="false" />
     </application>
 
 </manifest>

@@ -7,9 +7,10 @@
 
     <TextView
         android:id="@+id/id_txt_pasos_familiar"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:fontFamily="@font/lexend_semibold"
+        android:textAlignment="center"
         android:textSize="24sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -19,7 +20,7 @@
         app:layout_constraintVertical_bias="0.26" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="409dp"
+        android:layout_width="0dp"
         android:layout_height="100dp"
         android:background="#C4FFC9"
         app:layout_constraintEnd_toEndOf="parent"
@@ -30,6 +31,7 @@
             android:id="@+id/logo_unlam"
             android:layout_width="163dp"
             android:layout_height="100dp"
+            android:contentDescription="Logo de la Universidad Nacional de La Matanza"
             android:visibility="visible"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -39,6 +41,7 @@
             android:id="@+id/logo_diit"
             android:layout_width="169dp"
             android:layout_height="100dp"
+            android:contentDescription="Logo del Departamento de Ingeniería e Investigaciones Tecnológicas"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:srcCompat="@drawable/diit" />
@@ -52,6 +55,7 @@
         android:text="SmartCane"
         android:textAlignment="center"
         android:textSize="60sp"
+        android:contentDescription="Texto principal: SmartCane"
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -65,53 +69,58 @@
         android:id="@+id/textView9"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:contentDescription="Texto secundario: Estado del baston"
         android:fontFamily="@font/lexend_semibold"
-        android:text="Estado Baston"
+        android:text="Estado Baston:"
         android:textAlignment="center"
-        android:textSize="30sp"
+        android:textSize="24sp"
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.327"
+        app:layout_constraintHorizontal_bias="0.233"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView8"
-        app:layout_constraintVertical_bias="0.086" />
+        app:layout_constraintVertical_bias="0.081" />
 
     <TextView
         android:id="@+id/textView11"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:contentDescription="Texto secundario: Alarma del baston"
         android:fontFamily="@font/lexend_semibold"
-        android:text="Alarma baston "
+        android:text="Alarma baston:"
         android:textAlignment="center"
-        android:textSize="30sp"
+        android:textSize="24sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.351"
+        app:layout_constraintHorizontal_bias="0.237"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView8"
-        app:layout_constraintVertical_bias="0.307" />
+        app:layout_constraintVertical_bias="0.318" />
 
     <TextView
         android:id="@+id/textView12"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:contentDescription="Texto secundario: Seguimiento de pasos del baston"
         android:fontFamily="@font/lexend_semibold"
         android:text="Seguimiento de Pasos"
         android:textAlignment="center"
         android:textSize="24sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.434"
+        app:layout_constraintHorizontal_bias="0.372"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView8"
-        app:layout_constraintVertical_bias="0.605" />
+        app:layout_constraintVertical_bias="0.604" />
 
     <TextView
         android:id="@+id/id_txt_estado_baston"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:contentDescription="Texto secundario: Estado actual del baston"
         android:fontFamily="@font/lexend_semibold"
+        android:textAlignment="center"
         android:textSize="30sp"
         app:layout_constraintBottom_toTopOf="@+id/textView11"
         app:layout_constraintEnd_toEndOf="parent"
@@ -121,9 +130,11 @@
 
     <TextView
         android:id="@+id/id_txt_alarma_baston"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:contentDescription="Texto secundario: Estado actual de la alarma"
         android:fontFamily="@font/lexend_semibold"
+        android:textAlignment="center"
         android:textSize="30sp"
         app:layout_constraintBottom_toTopOf="@+id/textView12"
         app:layout_constraintEnd_toEndOf="parent"

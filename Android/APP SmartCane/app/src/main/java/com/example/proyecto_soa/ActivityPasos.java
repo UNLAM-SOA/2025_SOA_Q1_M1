@@ -18,7 +18,7 @@ import androidx.appcompat.app.AppCompatActivity;
 public class ActivityPasos extends AppCompatActivity {
     private TextView txt_pasos;
     private Button cmdVolver;
-    private int pasos=0;
+    private int pasos = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,40 +27,34 @@ public class ActivityPasos extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_secundaria);
 
-        txt_pasos=(TextView)findViewById(R.id.Cant_pasos);
-        cmdVolver =(Button)findViewById(R.id.button_volver);
+        txt_pasos = (TextView) findViewById(R.id.Cant_pasos);
+        cmdVolver = (Button) findViewById(R.id.button_volver);
 
         cmdVolver.setOnClickListener(botonesListeners);
-
     }
 
-    private View.OnClickListener botonesListeners = new View.OnClickListener()
-    {
+    private View.OnClickListener botonesListeners = new View.OnClickListener() {
         @Override
-        public void onClick(View view)
-        {
-            if(view.getId()==R.id.button_volver)
+        public void onClick(View view) {
+            if (view.getId() == R.id.button_volver)
                 finish();
             else
-                Toast.makeText(getApplicationContext(),"Error en Listener de botones",Toast.LENGTH_LONG).show();
+                Toast.makeText(getApplicationContext(), "Error en Listener de botones", Toast.LENGTH_LONG).show();
         }
     };
 
     @Override
-    protected void onStop()
-    {
+    protected void onStop() {
         super.onStop();
     }
 
     @Override
-    protected void onDestroy()
-    {
+    protected void onDestroy() {
         super.onDestroy();
     }
 
     @Override
-    protected void onRestart()
-    {
+    protected void onRestart() {
         super.onRestart();
     }
 
@@ -85,5 +79,4 @@ public class ActivityPasos extends AppCompatActivity {
         super.onPause();
         unregisterReceiver(pasoReceiver);
     }
-
 }

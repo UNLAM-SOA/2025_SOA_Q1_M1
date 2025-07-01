@@ -1,16 +1,22 @@
 package com.example.proyecto_soa;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
-
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.os.IBinder;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
+
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.Priority;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
@@ -20,12 +26,14 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
-public class MqttHandlerService extends Service implements MqttCallback {
-    public static final String ACTION_DATA_OBSTACLE_RECEIVE ="com.example.intentservice.intent.action.DATA_OBSTACLE_RECEIVE";
-    public static final String ACTION_DATA_ALARM_RECEIVE ="com.example.intentservice.intent.action.DATA_ALARM_RECEIVE";
-    public static final String ACTION_DATA_ON_OFF_RECEIVE ="com.example.intentservice.intent.action.DATA_ON_OFF_RECEIVE";
-    public static final String ACTION_CONNECTION_LOST ="com.example.intentservice.intent.action.CONNECTION_LOST";
+public class MqttHandlerServiceBaston extends Service implements MqttCallback {
+    public static final String ACTION_DATA_ALARM_RECEIVE = "com.example.intentservice.intent.action.DATA_ALARM_RECEIVE";
+    public static final String ACTION_DATA_OBSTACLE_RECEIVE = "com.example.intentservice.intent.action.DATA_OBSTACLE_RECEIVE";
+    public static final String ACTION_CONNECTION_LOST = "com.example.intentservice.intent.action.CONNECTION_LOST";
     private MqttClient mqttClient;
+    private int steps = 0;
+
+    public static boolean isRunning = false;
 
     private final BroadcastReceiver publishReceiver = new BroadcastReceiver() {
         @Override
@@ -33,12 +41,30 @@ public class MqttHandlerService extends Service implements MqttCallback {
             if ("PUBLISH_MQTT_MESSAGE".equals(intent.getAction())) {
                 String message = intent.getStringExtra(configMQTT.topicEstado);
 
-                if (message!= null){
-                    Log.d("MQTT","recibe broadcast");
-                    Log.d("MQTT",message);
+                if (message != null) {
+                    Log.d("MQTT", "recibe broadcast");
+                    Log.d("MQTT", message);
 
                     publish(configMQTT.topicEstado, message);
-                    Log.d("MQTT","publica broadcast");
+                    Log.d("MQTT", "publica broadcast");
+                }
+            }
+        }
+    };
+
+    private final BroadcastReceiver publishStepReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if ("PASOS_ACTUALIZADOS".equals(intent.getAction())) {
+                steps = intent.getIntExtra("pasos", 0);
+                String stringSteps = Integer.toString(steps);
+
+                if (stringSteps != null) {
+                    Log.d("MQTT", "service baston recibe broadcast de pasos");
+                    Log.d("MQTT", stringSteps);
+
+                    publish(configMQTT.TOPIC_STEP_EMQX, stringSteps);
+                    Log.d("MQTT", "service baston publica mqtt pasos");
                 }
             }
         }
@@ -48,9 +74,14 @@ public class MqttHandlerService extends Service implements MqttCallback {
     @Override
     public void onCreate() {
         super.onCreate();
+
+        isRunning = true;
+
         IntentFilter filter = new IntentFilter("PUBLISH_MQTT_MESSAGE");
         registerReceiver(publishReceiver, filter);
 
+        IntentFilter filter2 = new IntentFilter("PASOS_ACTUALIZADOS");
+        registerReceiver(publishStepReceiver, filter2);
     }
 
     @Override
@@ -83,12 +114,10 @@ public class MqttHandlerService extends Service implements MqttCallback {
 
             mqttClient.setCallback(this);
 
-            mqttClient.subscribe(configMQTT.TOPIC_ON_OFF_EMQX);
             mqttClient.subscribe(configMQTT.TOPIC_OBSTACLE_EMQX);
             mqttClient.subscribe(configMQTT.TOPIC_ALARM_EMQX);
-
         } catch (MqttException e) {
-            Log.d("Aplicacion",e.getMessage()+ "  "+e.getCause());
+            Log.d("Aplicacion", e.getMessage() + "  " + e.getCause());
         }
     }
 
@@ -104,7 +133,7 @@ public class MqttHandlerService extends Service implements MqttCallback {
 
     @Override
     public void connectionLost(Throwable cause) {
-        Log.d("MAIN ACTIVITY","conexion perdida"+ cause.getMessage().toString());
+        Log.d("MAIN ACTIVITY", "conexion perdida" + cause.getMessage().toString());
 
         Intent i = new Intent(ACTION_CONNECTION_LOST);
         sendBroadcast(i);
@@ -112,31 +141,40 @@ public class MqttHandlerService extends Service implements MqttCallback {
 
     @Override
     public void messageArrived(String topic, MqttMessage message) throws Exception {
-
         Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
                 if (topic.equals(configMQTT.TOPIC_OBSTACLE_EMQX)) {
-                    String pos_obstacle=message.toString();
+                    String pos_obstacle = message.toString();
 
                     Intent i = new Intent(ACTION_DATA_OBSTACLE_RECEIVE);
                     i.putExtra("pos_obstacle", pos_obstacle);
 
                     sendBroadcast(i);
-                }else if(topic.equals(configMQTT.TOPIC_ALARM_EMQX)) {
+                }  else if (topic.equals(configMQTT.TOPIC_ALARM_EMQX)) {
                     String alarm_state = message.toString();
 
-                    Intent i = new Intent(ACTION_DATA_ALARM_RECEIVE);
-                    i.putExtra("alarm_state", alarm_state);
+                    if(alarm_state.equals("CANE RELEASED")){
+                        FusedLocationProviderClient fusedLocationClient =
+                                LocationServices.getFusedLocationProviderClient(getApplicationContext());
 
-                    sendBroadcast(i);
-                }else if(topic.equals(configMQTT.TOPIC_ON_OFF_EMQX)) {
-                    String alarm_state = message.toString();
+                        if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+                                != PackageManager.PERMISSION_GRANTED) {
+                            Log.e("MQTT", "No tiene permiso de ubicación");
+                            return;
+                        }
 
-                    Intent i = new Intent(ACTION_DATA_ON_OFF_RECEIVE);
-                    i.putExtra("cane_state", alarm_state);
-
-                    sendBroadcast(i);
+                        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                                .addOnSuccessListener(location -> {
+                                    if (location != null) {
+                                        String message = location.getLatitude() + "," + location.getLongitude();
+                                        publish(configMQTT.TOPIC_LOCATION_EMQX, message);
+                                        Log.d("MQTT", "Ubicación enviada: " + message);
+                                    } else {
+                                        Log.e("MQTT", "No se pudo obtener la ubicación");
+                                    }
+                                });
+                    }
                 }
             }
         });
@@ -147,6 +185,7 @@ public class MqttHandlerService extends Service implements MqttCallback {
     public void onDestroy() {
         super.onDestroy();
         unregisterReceiver(publishReceiver);
+        unregisterReceiver(publishStepReceiver);
         try {
             if (mqttClient != null && mqttClient.isConnected()) {
                 mqttClient.disconnect();
@@ -155,6 +194,7 @@ public class MqttHandlerService extends Service implements MqttCallback {
         } catch (MqttException e) {
             e.printStackTrace();
         }
+        isRunning = false;
     }
 
     @Override
