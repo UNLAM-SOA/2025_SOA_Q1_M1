@@ -16,7 +16,8 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
-public class MqttHandlerServiceFamiliar extends Service implements MqttCallback {
+public class MqttHandlerServiceFamily extends Service implements MqttCallback
+{
     public static final String ACTION_DATA_ALARM_RECEIVE = "com.example.intentservice.intent.action.DATA_ALARM_RECEIVE";
     public static final String ACTION_DATA_ON_OFF_RECEIVE = "com.example.intentservice.intent.action.DATA_ON_OFF_RECEIVE";
     public static final String ACTION_DATA_STEPS_RECEIVE = "com.example.intentservice.intent.action.DATA_STEPS_RECEIVE";
@@ -28,30 +29,39 @@ public class MqttHandlerServiceFamiliar extends Service implements MqttCallback 
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override
-    public void onCreate() {
+    public void onCreate()
+    {
         super.onCreate();
 
         isRunning = true;
     }
 
     @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                if (intent != null && intent.hasExtra("CLIENT_ID")) {
-                    String clientId = intent.getStringExtra("CLIENT_ID");
+    public int onStartCommand(Intent intent, int flags, int startId)
+    {
+        Thread thread = new Thread(new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    if (intent != null && intent.hasExtra("CLIENT_ID"))
+                    {
+                        String clientId = intent.getStringExtra("CLIENT_ID");
 
-                    connectMqtt(clientId);
+                        connectMqtt(clientId);
+                    }
                 }
             }
-        });
+        );
+
         thread.start();
         return START_STICKY;
     }
 
-    public void connectMqtt(String clientId) {
-        try {
+    public void connectMqtt(String clientId)
+    {
+        try
+        {
             MqttConnectOptions options = new MqttConnectOptions();
             options.setCleanSession(true);
 
@@ -69,73 +79,81 @@ public class MqttHandlerServiceFamiliar extends Service implements MqttCallback 
             mqttClient.subscribe(configMQTT.TOPIC_STEP_EMQX);
             mqttClient.subscribe(configMQTT.TOPIC_LOCATION_EMQX);
 
-        } catch (MqttException e) {
+        } catch (MqttException e)
+        {
             Log.d("Aplicacion", e.getMessage() + "  " + e.getCause());
+            e.printStackTrace();
         }
     }
 
     @Override
-    public void connectionLost(Throwable cause) {
-        Log.d("MAIN ACTIVITY", "conexion perdida" + cause.getMessage().toString());
-
+    public void connectionLost(Throwable cause)
+    {
         Intent i = new Intent(ACTION_CONNECTION_LOST);
         sendBroadcast(i);
     }
 
     @Override
-    public void messageArrived(String topic, MqttMessage message) throws Exception {
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-               if (topic.equals(configMQTT.TOPIC_ALARM_EMQX)) {
-                    String alarm_state = message.toString();
+    public void messageArrived(String topic, MqttMessage message) throws Exception
+    {
+        Thread thread = new Thread(new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                   if (topic.equals(configMQTT.TOPIC_ALARM_EMQX))
+                   {
+                        String alarm_state = message.toString();
 
-                    Intent i = new Intent(ACTION_DATA_ALARM_RECEIVE);
-                    i.putExtra("alarm_state", alarm_state);
+                        Intent i = new Intent(ACTION_DATA_ALARM_RECEIVE);
+                        i.putExtra("alarm_state", alarm_state);
 
-                    sendBroadcast(i);
-                } else if (topic.equals(configMQTT.TOPIC_ON_OFF_EMQX)) {
-                    Log.d("MQTT", "service familiar recibe el mensaje de on-off de MQTT");
-                    String alarm_state = message.toString();
+                        sendBroadcast(i);
+                    } else if (topic.equals(configMQTT.TOPIC_ON_OFF_EMQX))
+                    {
+                        String alarm_state = message.toString();
 
-                    Intent i = new Intent(ACTION_DATA_ON_OFF_RECEIVE);
-                    i.putExtra("cane_state", alarm_state);
+                        Intent i = new Intent(ACTION_DATA_ON_OFF_RECEIVE);
+                        i.putExtra("cane_state", alarm_state);
 
-                    sendBroadcast(i);
-                } else if (topic.equals(configMQTT.TOPIC_STEP_EMQX)) {
-                    String steps = message.toString();
-                    Log.d("MQTT", "service familiar recibe el mensaje de pasos de MQTT");
-                    Log.d("MQTT", steps);
+                        sendBroadcast(i);
+                    } else if (topic.equals(configMQTT.TOPIC_STEP_EMQX))
+                    {
+                        String steps = message.toString();
 
-                    Intent i = new Intent(ACTION_DATA_STEPS_RECEIVE);
-                    i.putExtra("step_state", steps);
+                        Intent i = new Intent(ACTION_DATA_STEPS_RECEIVE);
+                        i.putExtra("step_state", steps);
 
-                    sendBroadcast(i);
-                } else if (topic.equals(configMQTT.TOPIC_LOCATION_EMQX)) {
-                   String location = message.toString();
+                        sendBroadcast(i);
+                    } else if (topic.equals(configMQTT.TOPIC_LOCATION_EMQX))
+                    {
+                       String location = message.toString();
 
-                   Intent i = new Intent(ACTION_DATA_LOCATION_RECEIVE);
-                   i.putExtra("location_state", location);
+                       Intent i = new Intent(ACTION_DATA_LOCATION_RECEIVE);
+                       i.putExtra("location_state", location);
 
-                   Log.e("MQTT", "Location: " + location);
-
-                   sendBroadcast(i);
-               }
+                       sendBroadcast(i);
+                   }
+                }
             }
-        });
+        );
         thread.start();
     }
 
     @Override
-    public void onDestroy() {
+    public void onDestroy()
+    {
         super.onDestroy();
 
-        try {
-            if (mqttClient != null && mqttClient.isConnected()) {
+        try
+        {
+            if (mqttClient != null && mqttClient.isConnected())
+            {
                 mqttClient.disconnect();
                 mqttClient.close();
             }
-        } catch (MqttException e) {
+        } catch (MqttException e)
+        {
             e.printStackTrace();
         }
 
@@ -143,8 +161,7 @@ public class MqttHandlerServiceFamiliar extends Service implements MqttCallback 
     }
 
     @Override
-    public void deliveryComplete(IMqttDeliveryToken token) {
-    }
+    public void deliveryComplete(IMqttDeliveryToken token) {}
 
     @Nullable
     @Override
