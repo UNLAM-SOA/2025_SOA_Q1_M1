@@ -21,7 +21,7 @@
         android:theme="@style/Theme.Proyecto_SOA"
         tools:targetApi="31">
         <activity
-            android:name=".ActivityPrincipal"
+            android:name=".ActivityMain"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -29,12 +29,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".ActivityPasos" />
-        <activity android:name=".ActivityBaston" />
-        <activity android:name=".ActivityFamiliar" />
-        <service android:name=".ServicioPasosAcelerometro" android:exported="false" />
-        <service android:name=".MqttHandlerServiceBaston" android:exported="false" />
-        <service android:name=".MqttHandlerServiceFamiliar" android:exported="false" />
+        <activity android:name=".ActivitySteps" />
+        <activity android:name=".ActivityCane" />
+        <activity android:name=".ActivityFamily" />
+        <service android:name=".StepsWithAccelerometerService" android:exported="false" />
+        <service android:name=".MqttHandlerServiceCane" android:exported="false" />
+        <service android:name=".MqttHandlerServiceFamily" android:exported="false" />
     </application>
 
 </manifest>

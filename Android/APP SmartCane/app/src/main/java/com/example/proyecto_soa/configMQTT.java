@@ -7,7 +7,7 @@ import java.util.UUID;
 
 public class configMQTT {
 
-    public static final String CLIENT_BASTON_ID = "AndroidBastonClient";
+    public static final String CLIENT_CANE_ID = "AndroidCaneClient";
     public static final String CLIENT_FAM_ID = "AndroidFamClient";
     public static final String MQTT_SERVER_EMQX = "tcp://broker.emqx.io:1883";
     public static final String USER_NAME_EMQX = "SO Avanzados";
@@ -22,20 +22,21 @@ public class configMQTT {
     public static String mqttServer;
     public static String userName;
     public static String userPass;
-    public static String topicEstado;
+    public static String topicCMD;
     public static String topicOnOffState;
     public static String topicObstacle;
     public static String topicAlarm;
     public static String topicSteps;
     public static String topicLocation;
 
-    public static void useServerEMQX() {
+    public static void useServerEMQX()
+    {
         mqttServer = MQTT_SERVER_EMQX;
 
         userName = USER_NAME_EMQX;
         userPass = USER_PASS_EMQX;
 
-        topicEstado = TOPIC_CMD_EMQX;
+        topicCMD = TOPIC_CMD_EMQX;
         topicOnOffState = TOPIC_ON_OFF_EMQX;
         topicObstacle = TOPIC_OBSTACLE_EMQX;
         topicAlarm = TOPIC_ALARM_EMQX;
@@ -45,11 +46,14 @@ public class configMQTT {
 
     private static String clientId;
 
-    public static String getClientId(Context context, String name) {
-        if (clientId == null) {
+    public static String getClientId(Context context, String name)
+    {
+        if (clientId == null)
+        {
             SharedPreferences prefs = context.getSharedPreferences("mqtt_prefs", Context.MODE_PRIVATE);
             clientId = prefs.getString("client_id", null);
-            if (clientId == null) {
+            if (clientId == null)
+            {
                 clientId = name + UUID.randomUUID().toString();
                 prefs.edit().putString("client_id", clientId).apply();
             }

@@ -6,7 +6,7 @@
     android:layout_height="match_parent">
 
     <TextView
-        android:id="@+id/id_txt_pasos_familiar"
+        android:id="@+id/id_txt_family_steps"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:fontFamily="@font/lexend_semibold"
@@ -115,7 +115,7 @@
         app:layout_constraintVertical_bias="0.604" />
 
     <TextView
-        android:id="@+id/id_txt_estado_baston"
+        android:id="@+id/id_txt_cane_status"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:contentDescription="Texto secundario: Estado actual del baston"
@@ -129,7 +129,7 @@
         app:layout_constraintTop_toBottomOf="@+id/textView9" />
 
     <TextView
-        android:id="@+id/id_txt_alarma_baston"
+        android:id="@+id/id_txt_cane_alarm"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:contentDescription="Texto secundario: Estado actual de la alarma"
