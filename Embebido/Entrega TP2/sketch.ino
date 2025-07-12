@@ -9,7 +9,7 @@
 ******************************************************/
 // Pin map
 #define PIN_LED_GREEN                       2
-#define PIN_PRESSURE_SENSOR                 33
+#define PIN_PRESSURE_SENSOR                 4
 #define PIN_LED_RED                         5
 #define PIN_TRIG_RIGHT_DISTANCE_SENSOR      13
 #define PIN_BUTTON_ON                       15
@@ -26,7 +26,7 @@
 #define DISTANCE_MEDIUM                     50
 #define DISTANCE_CLOSE                      30
 #define DISTANCE_VERY_CLOSE                 15
-#define DISTANCE_THRESHOLD                  50 // Minimum distance to trigger alarm
+#define DISTANCE_THRESHOLD                  50 
 #define PRESSUSURE_THRESHOLD                2000
 #define DIFFERENCE_THRESHOLD_TIMEOUT        50
 #define MAX_NUM_ANALOG_SEN                  1
@@ -39,7 +39,7 @@
 #define ALARM_SOUND_BUTTON                  1
 
 // Actuator configurations
-#define TIMEOUT_CANE_RELEASED               3000 // 3 seconds
+#define TIMEOUT_CANE_RELEASED               3000
 #define ITERATIONS_ALARM_CANE_RELEASED      1
 #define ITERATIONS_OBSTACLE_ALARM_LEFT      1
 #define ITERATIONS_OBSTACLE_ALARM_RIGHT     2
@@ -53,20 +53,24 @@
 #define TONE_ALARM_CANE_RELEASED            200
 
 // State machine configurations
-#define MAX_STATES                          7
-#define MAX_EVENTS                          13
+#define MAX_STATES                          9
+#define MAX_EVENTS                          17
 
 // General macros
 #define INITIAL_SENSOR_VALUE                -1
 #define NO_WAIT                             0
 #define ON                                  1
 #define OFF                                 0
+#define CONNECTED                           1
+#define DISCONNECTED                        0
 
 // Task configurations
 #define BUZZER_TASK_STACK_SIZE              2048
 #define MOTOR_TASK_STACK_SIZE               2048
+#define MQTT_TASK_STACK_SIZE                2048
 #define BUZZER_TASK_PRIORITY                1
 #define MOTOR_TASK_PRIORITY                 1
+#define MQTT_TASK_PRIORITY                  1
 #define QUEUE_SIZE                          1
 #define DELAY_TASK                          100
 #define LONG_DELAY_TASK                     300
@@ -83,6 +87,45 @@
 #define MQTT_PORT                           1883
 #define WIFI_CONNECTION_DELAY               500
 #define WIFI_RECONNECTION_DELAY             5000
+
+// Debug
+#define SERIAL_DEBUG_ENABLED 1
+
+#if SERIAL_DEBUG_ENABLED
+  #define DebugPrint(str)\
+    {\
+      Serial.print(str);\
+    }
+#else
+  #define DebugPrint(str)
+#endif
+
+#if SERIAL_DEBUG_ENABLED
+  #define DebugPrintln(str)\
+    {\
+      Serial.println(str);\
+    }
+#else
+  #define DebugPrint(str)
+#endif
+
+#if SERIAL_DEBUG_ENABLED
+  #define DebugPrintState(state,event)\
+    {\
+      String st = state;\
+      String ev = event;\
+      String str;\
+      str = "-----------------------------------------------------";\
+      DebugPrintln(str);\
+      str = "STATE-> [" + st + "]: " + "EVENT-> [" + ev + "].";\
+      DebugPrintln(str);\
+      str = "-----------------------------------------------------";\
+      DebugPrintln(str);\
+    }
+#else
+  #define DebugPrintEstado(estado,evento)
+#endif
+
 
 /****************************************************** 
                     General Structs 
@@ -134,6 +177,13 @@ void alarm_collision_left_on();
 void alarm_collision_both_on();
 void alarm_collision_off();
 
+void mqttConnect();
+void wifiConnect();
+void shut_down_system();
+void set_active_state();
+void set_wifi_disconnected_state();
+void set_mqtt_disconnected_state();
+
 // Default handlers
 void error();
 void none();
@@ -143,6 +193,8 @@ void none();
 ******************************************************/
 enum states          { ST_OFF,
                        ST_ACTIVE,
+                       ST_MQTT_DISCONNECTED,
+                       ST_WIFI_DISCONNECTED,
                        ST_TIMER_WAITING,
                        ST_CANE_REL,
                        ST_RIGHT_OBSTACLE,
@@ -151,6 +203,8 @@ enum states          { ST_OFF,
 
 String states_s [] = { "ST_OFF",
                        "ST_ACTIVE",
+                       "ST_MQTT_DISCONNECTED",
+                       "ST_WIFI_DISCONNECTED",
                        "ST_TIMER_WAITING",
                        "ST_CANE_REL",
                        "ST_RIGHT_OBSTACLE",
@@ -159,6 +213,10 @@ String states_s [] = { "ST_OFF",
 
 enum events          {EV_SWITCH_ON, 
                       EV_SWITCH_OFF,
+                      EV_MQTT_CONNECTED,
+                      EV_MQTT_DISCONNECTED,
+                      EV_WIFI_CONNECTED,
+                      EV_WIFI_DISCONNECTED,
                       EV_SWITCH_SOUND_ON,
                       EV_SWITCH_SOUND_OFF,
                       EV_CONT, 
@@ -173,6 +231,10 @@ enum events          {EV_SWITCH_ON,
 
 String events_s [] = {"EV_SWITCH_ON",
                       "EV_SWITCH_OFF",
+                      "EV_MQTT_CONNECTED",
+                      "EV_MQTT_DISCONNECTED",
+                      "EV_WIFI_CONNECTED",
+                      "EV_WIFI_DISCONNECTED",
                       "EV_SWITCH_SOUND_ON",
                       "EV_SWITCH_SOUND_OFF",
                       "EV_CONT",
@@ -188,20 +250,24 @@ String events_s [] = {"EV_SWITCH_ON",
 typedef void (*transition)();
 transition state_table[MAX_EVENTS][MAX_STATES] =
 {
-  // ST_OFF    ST_ACTIVE                    ST_TIMER_WAITING   ST_CANE_REL        ST_RIGHT_OBSTACLE             ST_LEFT_OBSTACLE              ST_BOTH_OBSTACLE
-  { turn_on  , none                       , none             , none             , none                        , none                        , none                       }, // EV_SWITCH_ON
-  { none     , turn_off                   , turn_off         , turn_off         , turn_off                    , turn_off                    , turn_off                   }, // EV_SWITCH_OFF
-  { none     , none                       , none             , none             , sound_alarm_obstacle_on     , sound_alarm_obstacle_on     , sound_alarm_obstacle_on    }, // EV_SWITCH_SOUND_ON
-  { none     , none                       , none             , none             , sound_alarm_obstacle_off    , sound_alarm_obstacle_off    , sound_alarm_obstacle_off   }, // EV_SWITCH_SOUND_OFF
-  { none     , none                       , none             , none             , none                        , none                        , none                       }, // EV_CONT
-  { none     , none                       , alarm_stick_off  , alarm_stick_off  , none                        , none                        , none                       }, // EV_PRESSED
-  { none     , none                       , alarm_stick_on   , none             , none                        , none                        , none                       }, // EV_TIMEOUT_RELEASED
-  { none     , start_timer_cane_released  , none             , none             , start_timer_cane_released   , start_timer_cane_released   , start_timer_cane_released  }, // EV_NOT_PRESSED
-  { none     , alarm_collision_right_on   , none             , none             , alarm_collision_right_on    , alarm_collision_both_on     , none                       }, // EV_OBSTACLE_RIGHT
-  { none     , none                       , none             , none             , alarm_collision_off         , none                        , alarm_collision_left_on    }, // EV_NO_OBSTACLE_RIGHT
-  { none     , alarm_collision_left_on    , none             , none             , alarm_collision_both_on     , alarm_collision_left_on     , none                       }, // EV_OBSTACLE_LEFT
-  { none     , none                       , none             , none             , none                        , alarm_collision_off         , alarm_collision_right_on   }, // EV_NO_OBSTACLE_LEFT
-  { error    , error                      , error            , error            , error                       , error                       , error                      }  // EV_TIMEOUT
+  // ST_OFF    ST_ACTIVE                    ST_MQTT_DISCONNECTED            ST_WIFI_DISCONNECTED   ST_TIMER_WAITING    ST_CANE_REL                    ST_RIGHT_OBSTACLE              ST_LEFT_OBSTACLE               ST_BOTH_OBSTACLE
+  { turn_on  , none                         , none                          , none                 , none              , none                         , none                         , none                         , none                         }, // EV_SWITCH_ON
+  { none     , turn_off                     , none                          , none                 , turn_off          , turn_off                     , turn_off                     , turn_off                     , turn_off                     }, // EV_SWITCH_OFF
+  { none     , none                         , set_active_state              , none                 , none              , none                         , none                         , none                         , none                         }, // EV_MQTT_CONNECTED
+  { none     , set_mqtt_disconnected_state  , mqttConnect                   , none                 , none              , set_mqtt_disconnected_state  , set_mqtt_disconnected_state  , set_mqtt_disconnected_state  , set_mqtt_disconnected_state  }, // EV_MQTT_DISCONNECTED
+  { none     , none                         , none                          , set_active_state     , none              , none                         , none                         , none                         , none                         }, // EV_WIFI_CONNECTED
+  { none     , set_wifi_disconnected_state  , set_wifi_disconnected_state   , wifiConnect          , none              , set_wifi_disconnected_state  , set_wifi_disconnected_state  , set_wifi_disconnected_state  , set_wifi_disconnected_state  }, // EV_WIFI_DISCONNECTED
+  { none     , none                         , none                          , none                 , none              , none                         , sound_alarm_obstacle_on      , sound_alarm_obstacle_on      , sound_alarm_obstacle_on      }, // EV_SWITCH_SOUND_ON
+  { none     , none                         , none                          , none                 , none              , none                         , sound_alarm_obstacle_off     , sound_alarm_obstacle_off     , sound_alarm_obstacle_off     }, // EV_SWITCH_SOUND_OFF
+  { none     , none                         , none                          , none                 , none              , none                         , none                         , none                         , none                         }, // EV_CONT
+  { none     , none                         , none                          , none                 , alarm_stick_off   , alarm_stick_off              , none                         , none                         , none                         }, // EV_PRESSED
+  { none     , none                         , none                          , none                 , alarm_stick_on    , none                         , none                         , none                         , none                         }, // EV_TIMEOUT_RELEASED
+  { none     , start_timer_cane_released    , none                          , none                 , none              , none                         , start_timer_cane_released    , start_timer_cane_released    , start_timer_cane_released    }, // EV_NOT_PRESSED
+  { none     , alarm_collision_right_on     , none                          , none                 , none              , none                         , alarm_collision_right_on     , alarm_collision_both_on      , none                         }, // EV_OBSTACLE_RIGHT
+  { none     , none                         , none                          , none                 , none              , none                         , alarm_collision_off          , none                         , alarm_collision_left_on      }, // EV_NO_OBSTACLE_RIGHT
+  { none     , alarm_collision_left_on      , none                          , none                 , none              , none                         , alarm_collision_both_on      , alarm_collision_left_on      , none                         }, // EV_OBSTACLE_LEFT
+  { none     , none                         , none                          , none                 , none              , none                         , none                         , alarm_collision_off          , alarm_collision_right_on     }, // EV_NO_OBSTACLE_LEFT
+  { error    , error                        , error                         , error                , error             , error                        , error                        , error                        , error                        }  // EV_TIMEOUT
 };
 
 /****************************************************** 
@@ -219,6 +285,57 @@ bool previous_value_power_on_button_reset_needed = false;
 bool previous_value_sound_button_reset_needed = false;
 bool previous_value_preassure_sensor_reset_needed = false;
 bool previous_value_distance_sensor_reset_needed = false;
+
+
+
+/******************************************************
+                    WiFi y MQTT
+******************************************************/
+
+typedef enum
+{
+  CONNECTION_UNKNOWN       = -1,
+  CONNECTION_DISCONNECTED  =  0,
+  CONNECTION_CONNECTED     =  1
+}connection_state_t;
+
+
+
+const char* ssid     = "SO Avanzados";
+const char* password = "SOA.2019";
+
+// Data fot EMQX
+char mqtt_server_emqx[CREDENTIALS_LENGTH] = "broker.emqx.io";
+char user_name_emqx[CREDENTIALS_LENGTH]   = "";
+char user_pass_emqx[CREDENTIALS_LENGTH]   = "";
+
+// Topics
+char topic_cmd[TOPIC_NAME_LENGTH];
+char topic_on_off_status[TOPIC_NAME_LENGTH];
+char topic_obstacle_status[TOPIC_NAME_LENGTH];
+char topic_alarm_status[TOPIC_NAME_LENGTH];
+
+// Variables used internally
+const char* mqtt_server; 
+
+char user_name[CREDENTIALS_LENGTH];
+char user_pass[CREDENTIALS_LENGTH];
+
+int mqtt_port = MQTT_PORT;
+WiFiClient espClient;
+PubSubClient client(espClient);
+char clientId[CREDENTIALS_LENGTH];
+
+int mqtt_command = INITIAL_MQTT_COMMAND;
+int mqtt_previous_command = INITIAL_MQTT_COMMAND;
+
+connection_state_t mqtt_connection          = CONNECTION_UNKNOWN;
+connection_state_t mqtt_previous_connection = CONNECTION_UNKNOWN;
+
+wl_status_t wifi_connection           = (wl_status_t)(CONNECTION_UNKNOWN);
+wl_status_t wifi_previous_connection  = (wl_status_t)(CONNECTION_UNKNOWN);
+
+
 
 /****************************************************** 
           FreeRTOS Tasks: Structs and variables
@@ -248,6 +365,8 @@ typedef struct
 
 QueueHandle_t xQueueBuzzer;
 QueueHandle_t xQueueVibrationMotor;
+
+
 
 /****************************************************** 
           Buzzer task and auxiliar functions
@@ -428,36 +547,44 @@ void motor_task(void *parameter)
   }
 }
 
-/******************************************************
-                    WiFi y MQTT
-******************************************************/
-const char* ssid     = "SO Avanzados";
-const char* password = "SOA.2019";
+void mqttCallback(char* topic, byte* payload, unsigned int length) 
+{
+  if (strcmp(topic, topic_cmd) == 0) 
+  {
+    String messageTemp;
+    for (unsigned int i = 0; i < length; i++) 
+    {
+      messageTemp += (char)payload[i];
+    }
+    messageTemp.trim();
 
-// Data fot EMQX
-char mqtt_server_emqx[CREDENTIALS_LENGTH] = "broker.emqx.io";
-char user_name_emqx[CREDENTIALS_LENGTH]   = "";
-char user_pass_emqx[CREDENTIALS_LENGTH]   = "";
+    DebugPrint("Comando MQTT recibido: ");
+    DebugPrintln(messageTemp);
 
-// Topics
-char topic_cmd[TOPIC_NAME_LENGTH];
-char topic_on_off_status[TOPIC_NAME_LENGTH];
-char topic_obstacle_status[TOPIC_NAME_LENGTH];
-char topic_alarm_status[TOPIC_NAME_LENGTH];
+    if (messageTemp.equalsIgnoreCase("ON")) 
+    {
+      mqtt_command = ON;
+    } 
+    else if (messageTemp.equalsIgnoreCase("OFF")) 
+    {
+      mqtt_command = OFF;
+    }
+  }
+}
 
-// Variables used internally
-const char* mqtt_server; 
 
-char user_name[CREDENTIALS_LENGTH];
-char user_pass[CREDENTIALS_LENGTH];
+// Task 3: mensajes mqtt
+void mqtt_task(void *parameter)
+{
+  while (true)
+  {
+    client.loop();
+    vTaskDelay(pdMS_TO_TICKS(SMALL_DELAY));
+  }
+}
 
-int mqtt_port = MQTT_PORT;
-WiFiClient espClient;
-PubSubClient client(espClient);
-char clientId[CREDENTIALS_LENGTH];
 
-int mqtt_command = INITIAL_MQTT_COMMAND;
-int mqtt_previous_command = INITIAL_MQTT_COMMAND;
+
 
 /****************************************************** 
                       Setup Function 
@@ -510,7 +637,18 @@ void do_init()
     NULL
   );
 
-  turn_off();
+  xTaskCreate(
+    mqtt_task,
+    "mqtt_task",
+    MQTT_TASK_STACK_SIZE ,
+    NULL,
+    MQTT_TASK_PRIORITY,
+    NULL
+  );
+
+  shut_down_system();
+  current_state = ST_OFF;
+  DebugPrintEstado(current_state, new_event);
   
   timeout = false;
   lct = millis();
@@ -518,6 +656,11 @@ void do_init()
   buttons[POWER_ON_BUTTON].previous_value = INITIAL_SENSOR_VALUE;
   buttons[ALARM_SOUND_BUTTON].previous_value = INITIAL_SENSOR_VALUE;
   analog_sensors[PRESSURE_SENSOR].previous_value = INITIAL_SENSOR_VALUE;
+
+  randomSeed(analogRead(0));
+  define_broker();
+  init_wifi();
+  init_mqtt();
 }
 
 /****************************************************** 
@@ -765,40 +908,63 @@ void define_broker()
     strcpy(topic_alarm_status, TOPIC_MQTT_ALARM_STATUS_EMQX);
 }
 
-void wifiConnect() 
-{
-  WiFi.begin(ssid, password);
-  Serial.print("Conectando a WiFi");
-  while (WiFi.status() != WL_CONNECTED) 
-  {
-    delay(WIFI_CONNECTION_DELAY);
-    Serial.print(".");
-  }
-  Serial.println(" ¡Conectado!");
-  Serial.print("IP: ");
-  Serial.println(WiFi.localIP());
-}
 
-void mqttReconnect() 
+void mqttConnect()
 {
-  while (!client.connected()) 
+  if (!client.connected()) 
   {
-    Serial.print("Conectando al broker MQTT...");
+    DebugPrintln("Conectando al broker MQTT...");
     long r = random(1000);
     sprintf(clientId, "clientSmartCaneId-%ld", r);
-    if (client.connect(clientId, user_name, user_pass)) 
+    if (client.connect(clientId, user_name, user_pass))
     {
-      Serial.println(" ¡Conectado!");
-      client.subscribe(topic_cmd); 
+      DebugPrintln(" ¡Conectado!");
+      client.subscribe(topic_cmd);
     } else 
     {
-      Serial.print("Error MQTT rc=");
-      Serial.print(client.state());
-      Serial.println(" reintentando en 5 segundos...");
-      delay(WIFI_RECONNECTION_DELAY);
+      DebugPrint("Error MQTT rc=");
+      DebugPrintln(client.state());
     }
   }
 }
+
+
+void wifiConnect()
+{
+  WiFi.begin(ssid, password);
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    DebugPrintln(" ¡Conectado a wifi!");
+    DebugPrint("IP: ");
+    DebugPrintln(WiFi.localIP());
+  }
+  else
+  {
+    DebugPrintln("No se pudo establecer la conexion wifi");
+  } 
+}
+
+
+void set_active_state()
+{
+  current_state = ST_ACTIVE;
+  DebugPrintEstado(current_state, new_event);
+}
+
+void set_wifi_disconnected_state()
+{
+  shut_down_system();
+  current_state = ST_WIFI_DISCONNECTED;
+  DebugPrintEstado(current_state, new_event);
+}
+
+void set_mqtt_disconnected_state()
+{
+  shut_down_system();
+  current_state = ST_MQTT_DISCONNECTED;
+  DebugPrintEstado(current_state, new_event);
+}
+
 
 bool verify_mqtt_command()
 {
@@ -819,29 +985,36 @@ bool verify_mqtt_command()
   return false;
 }
 
-void mqttCallback(char* topic, byte* payload, unsigned int length) 
+
+bool verify_mqtt_connection()
 {
-  if (strcmp(topic, topic_cmd) == 0) 
+  mqtt_connection = client.connected() ? CONNECTION_CONNECTED : CONNECTION_DISCONNECTED;
+
+  if(mqtt_connection == CONNECTION_CONNECTED)
   {
-    String messageTemp;
-    for (unsigned int i = 0; i < length; i++) 
-    {
-      messageTemp += (char)payload[i];
-    }
-    messageTemp.trim();
+    new_event = EV_MQTT_DISCONNECTED;
 
-    Serial.print("Comando MQTT recibido: ");
-    Serial.println(messageTemp);
-
-    if (messageTemp.equalsIgnoreCase("ON")) 
-    {
-      mqtt_command = ON;
-    } 
-    else if (messageTemp.equalsIgnoreCase("OFF")) 
-    {
-      mqtt_command = OFF;
-    }
+  } else
+  {
+    new_event = EV_MQTT_CONNECTED;
   }
+  
+  return true;
+}
+
+bool verify_wifi_connection()
+{
+  wifi_connection = WiFi.status();
+ 
+  if (wifi_connection == WL_CONNECTED)
+  {
+    new_event = EV_WIFI_CONNECTED;
+  }
+  else
+  {
+    new_event = EV_WIFI_DISCONNECTED;
+  }
+  return true;
 }
 
 void publishObstacleStatus(const char* status) 
@@ -849,8 +1022,8 @@ void publishObstacleStatus(const char* status)
   if (client.connected()) 
   {
     client.publish(topic_obstacle_status, status);
-    Serial.print("Estado de Obstaculo enviado: ");
-    Serial.println(status);
+    DebugPrint("Estado de Obstaculo enviado: ");
+    DebugPrintln(status);
   }
 }
 
@@ -859,8 +1032,8 @@ void publishReleasedCaneStatus(const char* status)
   if (client.connected()) 
   {
     client.publish(topic_alarm_status, status);
-    Serial.print("Estado de Alarma enviado: ");
-    Serial.println(status);
+    DebugPrint("Estado de Alarma enviado: ");
+    DebugPrintln(status);
   }
 }
 
@@ -869,8 +1042,8 @@ void publishON_OFFStatus(const char* status)
   if (client.connected()) 
   {
     client.publish(topic_on_off_status, status);
-    Serial.print("Estado de Encendido enviado: ");
-    Serial.println(status);
+    DebugPrint("Estado de Encendido enviado: ");
+    DebugPrintln(status);
   }
 }
 
@@ -918,8 +1091,9 @@ void get_new_event()
     timeout = false;
     lct     = ct;
     
-    if( (verify_mqtt_command() == true) || (verify_button_on() == true) || ( verify_pressure_sensor() == true) 
-      || (verify_timer_released() == true) ||  (verify_sound_button() == true) 
+    if(  (verify_wifi_connection() == true) || (verify_mqtt_connection() == true) 
+      || (verify_mqtt_command() == true) || (verify_button_on() == true) || ( verify_pressure_sensor() == true) 
+      || (verify_timer_released() == true) ||  (verify_sound_button() == true)
       || (verify_left_distance_sensor() == true) ||  (verify_right_distance_sensor() == true) )
     {
       return;
@@ -993,7 +1167,7 @@ void alarm_collision_off()
   turn_off_buzzer();
   current_state = ST_ACTIVE;
 
-  print_trasition_state(current_state);
+  DebugPrintEstado(current_state, new_event);
 
   publishObstacleStatus("NO_OBSTACLE");
 }
@@ -1015,7 +1189,7 @@ void alarm_collision_right_on()
   create_message_buzzer();
   current_state = ST_RIGHT_OBSTACLE;
 
-  print_trasition_state(current_state);
+  DebugPrintEstado(current_state, new_event);
   
   publishObstacleStatus("OBSTACLE_RIGHT");
 }
@@ -1026,7 +1200,7 @@ void alarm_collision_left_on()
   create_message_buzzer();
   current_state = ST_LEFT_OBSTACLE;
 
-  print_trasition_state(current_state);
+  DebugPrintEstado(current_state, new_event);
 
   publishObstacleStatus("OBSTACLE_LEFT");
 }
@@ -1037,7 +1211,7 @@ void alarm_collision_both_on()
   create_message_buzzer(); 
   current_state = ST_BOTH_OBSTACLE;
 
-  print_trasition_state(current_state);
+  DebugPrintEstado(current_state, new_event);
 
   publishObstacleStatus("OBSTACLE_BOTH");
 }
@@ -1055,7 +1229,7 @@ void alarm_stick_on()
   current_state = ST_CANE_REL;
 
   publishReleasedCaneStatus("CANE RELEASED");
-  print_trasition_state(current_state);
+  DebugPrintEstado(current_state, new_event);
 }
 
 void alarm_stick_off()
@@ -1066,11 +1240,12 @@ void alarm_stick_off()
   turn_off_vibration_motor();
 
   previous_value_distance_sensor_reset_needed = true;
+  timer_cane_released_initiated = false;
 
   current_state = ST_ACTIVE;
 
   publishReleasedCaneStatus("CANE USE RESUMED");
-  print_trasition_state(current_state);
+  DebugPrintEstado(current_state, new_event);
 }
 
 void start_timer_cane_released()
@@ -1081,19 +1256,25 @@ void start_timer_cane_released()
   time_cane_released = millis();
   current_state = ST_TIMER_WAITING;
 
-  print_trasition_state(current_state);
+  DebugPrintEstado(current_state, new_event);
 }
 
 void turn_off()
 {
-  turn_off_leds();
-  turn_off_buzzer();
-  turn_off_vibration_motor();
+  shut_down_system();
 
   current_state = ST_OFF;
 
   publishON_OFFStatus("CANE OFF");
-  print_trasition_state(current_state);
+  DebugPrintEstado(current_state, new_event);
+}
+
+
+void shut_down_system()
+{
+  turn_off_leds();
+  turn_off_buzzer();
+  turn_off_vibration_motor();
 }
 
 void turn_on()
@@ -1110,7 +1291,7 @@ void turn_on()
   current_state = ST_ACTIVE;
 
   publishON_OFFStatus("CANE ON");
-  print_trasition_state(current_state);
+  DebugPrintEstado(current_state, new_event);
 }
 
 void sound_alarm_obstacle_off()
@@ -1123,35 +1304,17 @@ void sound_alarm_obstacle_on()
   turn_on_buzzer();
 }
 
-void print_trasition_state(states current_state)
+void init_wifi()
 {
-  Serial.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
-  Serial.println("State transition completed");
-  Serial.print("[New current state ");
-  Serial.print(states_s[current_state]);
-  Serial.println("]");
-  Serial.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-  Serial.println("");
+  WiFi.begin(ssid, password);
+  DebugPrintln("Intentando conexión inicial WiFi...");
 }
 
-void configure_wifi_and_mqtt()
+void init_mqtt()
 {
-  randomSeed(analogRead(0));
-
-  define_broker();
-  wifiConnect();
-
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(mqttCallback);
-
-  if (client.connect(clientId, user_name, user_pass)) 
-  {
-    Serial.println("MQTT conectado.");
-    client.subscribe(topic_cmd); 
-  } else {
-    Serial.print("Error conexión MQTT: ");
-    Serial.println(client.state());
-  }
+  mqttConnect();
 }
 
 /****************************************************** 
@@ -1173,17 +1336,9 @@ void state_machine( )
 void setup()
 {
   do_init();
-  
-  configure_wifi_and_mqtt();
 }
 
 void loop()
 {
-  if (!client.connected()) 
-  {
-    mqttReconnect();       
-  }
-  client.loop();           
-
   state_machine();
 }
