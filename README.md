@@ -50,36 +50,19 @@ El sistema SmartCane se compone de dos elementos principales:
    - Se activa una alerta (buzzer + LED rojo).
    - Se notifica automáticamente a la aplicación SmartCane App con la ubicación del usuario.
   
-## Descripción de los estados
+## Descripción de los Estados del Sistema SmartCane
 
-ST_OFF
-  - Estado inicial o apagado del sistema. No se ejecutan acciones excepto cuando se enciende.
-
-ST_ACTIVE
-  - Estado activo del sistema, donde está operativo y puede interactuar con sensores/red.
-
-ST_MQTT_DISCONNECTED
-  - Indica que la conexión MQTT está caída. El sistema puede intentar reconectarse.
-
-ST_WIFI_DISCONNECTED
-  - Similar al anterior, pero para desconexión WiFi. También puede intentar reconectar.
-
-ST_TIMER_WAITING
-  - Estado de espera de 3 segundos, tras soltar el bastón, esperando si se presiona nuevamente.
-
-ST_CANE_REL
-  - El bastón ha sido soltado por mas de 3 segundos. Se activa la alarma.
-
-ST_RIGHT_OBSTACLE
-  - Se ha detectado un obstáculo con el sensor ultrasonico derecho.
-
-ST_LEFT_OBSTACLE
-  - Se ha detectado un obstáculo con el sensor ultrasonico izquierdo.
-
-ST_BOTH_OBSTACLE
-  - Se ha detectado un obstáculo con ambos sensor ultrasonicos.
- 
- 
+| Estado                  | Descripción                                                                 |
+|-------------------------|-----------------------------------------------------------------------------|
+| `ST_OFF`               | Estado inicial o apagado del sistema. No se ejecutan acciones excepto cuando se enciende. |
+| `ST_ACTIVE`            | Estado activo del sistema, donde está operativo y puede interactuar con sensores/red. |
+| `ST_MQTT_DISCONNECTED` | Indica que la conexión MQTT está caída. El sistema puede intentar reconectarse. |
+| `ST_WIFI_DISCONNECTED` | Similar al anterior, pero para desconexión WiFi. También puede intentar reconectar. |
+| `ST_TIMER_WAITING`     | Estado de espera de 3 segundos tras soltar el bastón, esperando si se presiona nuevamente. |
+| `ST_CANE_REL`          | El bastón ha sido soltado por más de 3 segundos. Se activa la alarma. |
+| `ST_RIGHT_OBSTACLE`    | Se ha detectado un obstáculo con el sensor ultrasónico derecho. |
+| `ST_LEFT_OBSTACLE`     | Se ha detectado un obstáculo con el sensor ultrasónico izquierdo. |
+| `ST_BOTH_OBSTACLE`     | Se ha detectado un obstáculo con ambos sensores ultrasónicos. |
 
 ## 📱 SmartCane App - Aplicación Móvil
 
@@ -112,7 +95,3 @@ La app utiliza el protocolo **MQTT** para comunicación en tiempo real entre el 
 # Prototipo realizado
 
 ![SmartCane Prototipo](https://www.soa-unlam.com.ar/wiki/images/thumb/4/48/GrupoM1_Smartcane_Prototipo%281%29.jpg/450px-GrupoM1_Smartcane_Prototipo%281%29.jpg)
-  
-
-
-
