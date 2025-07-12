@@ -50,7 +50,7 @@ El sistema SmartCane se compone de dos elementos principales:
    - Se activa una alerta (buzzer + LED rojo).
    - Se notifica automáticamente a la aplicación SmartCane App con la ubicación del usuario.
   
-##Descripción de los estados
+## Descripción de los estados
 
 ST_OFF
   - Estado inicial o apagado del sistema. No se ejecutan acciones excepto cuando se enciende.
