@@ -49,6 +49,37 @@ El sistema SmartCane se compone de dos elementos principales:
 4. Si el usuario suelta el bastón:
    - Se activa una alerta (buzzer + LED rojo).
    - Se notifica automáticamente a la aplicación SmartCane App con la ubicación del usuario.
+  
+##Descripción de los estados
+
+ST_OFF
+  - Estado inicial o apagado del sistema. No se ejecutan acciones excepto cuando se enciende.
+
+ST_ACTIVE
+  - Estado activo del sistema, donde está operativo y puede interactuar con sensores/red.
+
+ST_MQTT_DISCONNECTED
+  - Indica que la conexión MQTT está caída. El sistema puede intentar reconectarse.
+
+ST_WIFI_DISCONNECTED
+  - Similar al anterior, pero para desconexión WiFi. También puede intentar reconectar.
+
+ST_TIMER_WAITING
+  - Estado de espera de 3 segundos, tras soltar el bastón, esperando si se presiona nuevamente.
+
+ST_CANE_REL
+  - El bastón ha sido soltado por mas de 3 segundos. Se activa la alarma.
+
+ST_RIGHT_OBSTACLE
+  - Se ha detectado un obstáculo con el sensor ultrasonico derecho.
+
+ST_LEFT_OBSTACLE
+  - Se ha detectado un obstáculo con el sensor ultrasonico izquierdo.
+
+ST_BOTH_OBSTACLE
+  - Se ha detectado un obstáculo con ambos sensor ultrasonicos.
+ 
+ 
 
 ## 📱 SmartCane App - Aplicación Móvil
 
